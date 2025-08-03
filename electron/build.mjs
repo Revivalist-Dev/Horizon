@@ -29,8 +29,8 @@ const OS_CONFIGS = {
     formats: ['deb', 'rpm', 'tar.gz', 'AppImage'],
     arches: ['x64', 'arm64']
   },
-  win: {
-    aliases: ['windows', 'win32', 'win64'],
+  windows: {
+    aliases: ['win', 'win32', 'win64'],
     formats: ['exe', 'msi', 'nsis', 'portable'],
     arches: ['x64', 'ia32', 'arm64']
   }
@@ -247,14 +247,29 @@ async function runNativeBuild(opts, targetKey) {
   const outDir = path.resolve(opts.output || 'dist');
   fs.mkdirSync(outDir, { recursive: true });
 
-  // * Electron Builder configuration - matches working script format
+  // * Map our internal OS keys to electron-builder's expected property names
+  const platformMap = {
+    linux: 'linux',
+    macos: 'mac',
+    windows: 'win'
+  };
+
+  // * Create target specifications
+  const targets = opts.format.flatMap(format =>
+    opts.arch.map(arch => ({
+      target: format,
+      arch: arch
+    }))
+  );
+
+  // * Electron Builder configuration - use correct platform property name
   const config = {
     appId: 'com.fchat.horizon',
     productName: 'F-Chat Horizon',
     artifactName: '${productName}-${version}-${os}-${arch}.${ext}',
     directories: { output: outDir },
     files: ['dist/**/*', 'node_modules/**/*', 'package.json'],
-    [targetKey]: { target: opts.format }
+    [platformMap[targetKey]]: { target: targets }
   };
 
   await build({ config });
