@@ -8,6 +8,7 @@ import { build } from 'electron-builder';
 import { execSync } from 'child_process';
 import path from 'path';
 
+// & Pretty colors for terminal output because we're fancy like that
 const COLORS = {
   reset: '\u001b[0m',
   red: '\u001b[31m',
@@ -15,6 +16,7 @@ const COLORS = {
   cyan: '\u001b[36m'
 };
 
+// * Configuration for each OS with their supported formats and architectures
 const OS_CONFIGS = {
   macos: {
     aliases: ['mac'],
@@ -33,6 +35,7 @@ const OS_CONFIGS = {
   }
 };
 
+// $ Sets up the commander program with all the fancy CLI options
 function setupProgram() {
   return program
     .name('build.mjs')
@@ -67,6 +70,7 @@ Supported architectures by OS:
     )
     .configureOutput({
       outputError: (str, write) => {
+        // * Custom error handling because the default commander errors are ugly
         if (str.includes("required option '--os <os>' not specified")) {
           write(
             `${COLORS.red}Error: Missing required option --os${COLORS.reset}\n`
@@ -83,7 +87,7 @@ Supported architectures by OS:
       }
     });
 }
-
+// $ Finds the target OS
 function findTargetOS(osInput) {
   return Object.keys(OS_CONFIGS).find(
     key =>
@@ -91,7 +95,7 @@ function findTargetOS(osInput) {
       OS_CONFIGS[key].aliases.includes(osInput.toLowerCase())
   );
 }
-
+// $ If options are not provided, set defaults
 function setDefaults(opts, config) {
   const { formats: defaultFormats, arches: defaultArches } = config;
 
@@ -101,8 +105,10 @@ function setDefaults(opts, config) {
     : [defaultArches.includes(systemArch()) ? systemArch() : defaultArches[0]];
 }
 
+// $ Now, we validate those suckers
 function validateOptions(opts, config, targetKey) {
   const { formats: validFormats, arches: validArches } = config;
+  // * Filter out any invalid options the user might have passed
   const invalidFormats = opts.format.filter(f => !validFormats.includes(f));
   const invalidArches = opts.arch.filter(a => !validArches.includes(a));
 
@@ -119,7 +125,8 @@ function validateOptions(opts, config, targetKey) {
     process.exit(1);
   }
 }
-
+// $ Yo, we got docker?
+// * Tries to run 'docker info' to see if Docker is actually installed and running
 function isDockerAvailable() {
   try {
     execSync('docker info', { stdio: 'ignore' });
@@ -129,7 +136,10 @@ function isDockerAvailable() {
   }
 }
 
+// $ Nice, nice, should we use it?
+// & Determines whether to use Docker based on user preference and availability
 function shouldUseDocker(opts, targetKey) {
+  // * Never use Docker for macOS (doesn't work) or if explicitly disabled
   if (opts.docker === false || targetKey === 'macos') return false;
 
   if (opts.docker) {
@@ -145,6 +155,8 @@ function shouldUseDocker(opts, targetKey) {
   return isDockerAvailable();
 }
 
+// $ If we're meant to, and have it available, run docker.
+// * This function is a hot mess but it works, mostly
 function runDockerBuild(opts, targetKey) {
   const image =
     targetKey === 'linux'
@@ -166,40 +178,51 @@ function runDockerBuild(opts, targetKey) {
 
   let dockerCmd;
 
+  // * Checks if we're on a Unix-like system (macos/Linux)
+  const isUnix = typeof process.getuid === 'function';
+  const ownershipFix = isUnix ? ` && chown -R ${process.getuid()}:${process.getgid()} /project` : '';
+
   if (isWindowsBuild) {
-    // Windows build with Wine - run as root for Wine compatibility, fix ownership after
+    // ! Hooooooly unreadable code.
+    // * Windows builds need Wine setup and extra environment variables
+
+    // * Windows build
     dockerCmd = `docker run --rm \
     ${envVars} \
     --env ELECTRON_CACHE="/root/.cache/electron" \
     --env ELECTRON_BUILDER_CACHE="/root/.cache/electron-builder" \
     --env WINEDEBUG=-all \
     --env WINEPREFIX=/root/.wine \
+    --env npm_config_store_dir="/root/.npm" \
     -v ${process.cwd()}:/project \
     -v ${project}-node-modules:/project/node_modules \
     -v ~/.cache/electron:/root/.cache/electron \
     -v ~/.cache/electron-builder:/root/.cache/electron-builder \
     ${image} \
-    /bin/bash -c "cd /project && wineboot --init && sleep 2 && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags} && chown -R ${process.getuid()}:${process.getgid()} /project"`;
+    /bin/bash -c "cd /project && wineboot --init && sleep 2 && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags}${ownershipFix}"`;
   } else {
-    // Linux build - run as root to avoid permission issues, fix ownership after
+    // * Unix build (Linux/macOS)
     dockerCmd = `docker run --rm \
     ${envVars} \
     --env ELECTRON_CACHE="/root/.cache/electron" \
     --env ELECTRON_BUILDER_CACHE="/root/.cache/electron-builder" \
+    --env npm_config_store_dir="/root/.npm" \
     -v ${process.cwd()}:/project \
     -v ${project}-node-modules:/project/node_modules \
     -v ~/.cache/electron:/root/.cache/electron \
     -v ~/.cache/electron-builder:/root/.cache/electron-builder \
     ${image} \
-    /bin/bash -c "cd /project && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags} && chown -R ${process.getuid()}:${process.getgid()} /project"`;
+    /bin/bash -c "cd /project && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags}${ownershipFix}"`;
   }
 
   console.log(
     `Running ${isWindowsBuild ? 'Wine-enabled Docker' : 'Docker'} build...`
   );
+  // * Execute the Docker command and pipe output directly to our terminal
   execSync(dockerCmd, { stdio: 'inherit' });
 }
 
+// $ Runs electron-builder directly on the host system (no Docker)
 async function runNativeBuild(opts, targetKey) {
   console.log('Starting native build...');
 
@@ -209,10 +232,11 @@ async function runNativeBuild(opts, targetKey) {
     windows: 'win'
   };
 
+  // & Create target specifications for electron-builder
   const targets = opts.format.map(format => `${format}:${opts.arch.join(',')}`);
   const config = {
     [platformMap[targetKey]]: targets,
-    dir: false,
+    dir: false, 
     ...(opts.output && {
       directories: {
         output: opts.output
@@ -224,7 +248,7 @@ async function runNativeBuild(opts, targetKey) {
   console.log('Build completed successfully!');
 }
 
-// Main execution
+// $ Main execution - where the magic happens
 (async () => {
   const opts = setupProgram().parse(process.argv).opts();
 
@@ -234,14 +258,17 @@ async function runNativeBuild(opts, targetKey) {
     process.exit(1);
   }
 
+  // * Set up defaults and validate everything
   const targetConfig = OS_CONFIGS[targetKey];
   setDefaults(opts, targetConfig);
   validateOptions(opts, targetConfig, targetKey);
 
+  // * Show the user what we're about to do
   console.log(
     `${COLORS.cyan}Building for ${targetKey} | formats: ${opts.format.join(', ')} | arches: ${opts.arch.join(', ')}${COLORS.reset}`
   );
 
+  // * Choose between Docker and native build
   if (shouldUseDocker(opts, targetKey)) {
     runDockerBuild(opts, targetKey);
   } else {
@@ -250,4 +277,4 @@ async function runNativeBuild(opts, targetKey) {
 })();
 
 // & I am so sorry for this crap code.
-// & -- Rose
+// & — Rose

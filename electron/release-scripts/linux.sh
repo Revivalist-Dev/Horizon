@@ -37,7 +37,7 @@ cd electron
 rm -rf app dist
 pnpm install
 node ../webpack production
-node build.mjs --os linux --format deb tar.gz AppImage --arch x64 arm64
+node build.mjs --os linux --format deb tar.gz AppImage rpm --arch x64 arm64
 
 # & Prepare release directory
 mkdir -p "$RELEASE_PATH"
@@ -45,4 +45,5 @@ mkdir -p "$RELEASE_PATH"
 # & Copy artifacts for release
 cp "$DIST_PATH"/*.tar.gz "$RELEASE_PATH"/ 2>/dev/null || true
 cp "$DIST_PATH"/*.deb "$RELEASE_PATH"/ 2>/dev/null || true
+cp "$DIST_PATH"/*.rpm "$RELEASE_PATH"/ 2>/dev/null || true
 cp "$DIST_PATH"/*.AppImage "$RELEASE_PATH"/ 2>/dev/null || true
