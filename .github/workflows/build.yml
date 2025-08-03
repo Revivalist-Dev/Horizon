@@ -72,24 +72,57 @@ jobs:
       - name: Run Build Script (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          # ! Execute Linux build script
-          chmod +x electron/release-scripts/linux.sh
-          electron/release-scripts/linux.sh "$RELEASE_VERSION" "$GITHUB_WORKSPACE/release_artifacts/linux/$RELEASE_VERSION"
+          # ! Execute Linux build using build.mjs
+          pnpm install
+          cd electron
+          rm -rf app dist
+          pnpm install
+          node ../webpack production
+          node build.mjs --os linux --format deb tar.gz AppImage --arch x64 arm64
+
+          # & Prepare release directory
+          mkdir -p "$GITHUB_WORKSPACE/release_artifacts/linux/$RELEASE_VERSION"
+
+          # & Copy artifacts for release
+          cp dist/*.tar.gz "$GITHUB_WORKSPACE/release_artifacts/linux/$RELEASE_VERSION/" 2>/dev/null || true
+          cp dist/*.deb "$GITHUB_WORKSPACE/release_artifacts/linux/$RELEASE_VERSION/" 2>/dev/null || true
+          cp dist/*.AppImage "$GITHUB_WORKSPACE/release_artifacts/linux/$RELEASE_VERSION/" 2>/dev/null || true
 
       - name: Run Build Script (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          # ! Execute macOS build script
-          chmod +x electron/release-scripts/macos.sh
-          electron/release-scripts/macos.sh "$RELEASE_VERSION" "$GITHUB_WORKSPACE/release_artifacts/macos/$RELEASE_VERSION"
-          # fixme: Ensure compatibility with the latest macOS versions
+          # ! Execute macOS build using build.mjs
+          pnpm install
+          cd electron
+          rm -rf app dist
+          pnpm install
+          node ../webpack production
+          node build.mjs --os macos --format dmg --arch universal
+
+          # & Prepare release directory
+          mkdir -p "$GITHUB_WORKSPACE/release_artifacts/macos/$RELEASE_VERSION"
+
+          # & Copy artifacts for release
+          cp dist/*.dmg "$GITHUB_WORKSPACE/release_artifacts/macos/$RELEASE_VERSION/" 2>/dev/null || true
 
       - name: Run Build Script (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # ! Execute Windows build script
-          .\electron\release-scripts\windows.ps1 -ReleaseVersion "$env:RELEASE_VERSION" -ReleasePath "$env:GITHUB_WORKSPACE\release_artifacts\windows\$env:RELEASE_VERSION"
+          # ! Execute Windows build using build.mjs
+          pnpm install
+          cd electron
+          Remove-Item -Recurse -Force app, dist -ErrorAction SilentlyContinue
+          pnpm install
+          node ../webpack production
+          node build.mjs --os windows --format nsis msi --arch x64 arm64
+
+          # & Prepare release directory
+          New-Item -ItemType Directory -Path "$env:GITHUB_WORKSPACE\release_artifacts\windows\$env:RELEASE_VERSION" -Force | Out-Null
+
+          # & Copy artifacts for release
+          Copy-Item "dist\*.exe" -Destination "$env:GITHUB_WORKSPACE\release_artifacts\windows\$env:RELEASE_VERSION\" -ErrorAction SilentlyContinue
+          Copy-Item "dist\*.msi" -Destination "$env:GITHUB_WORKSPACE\release_artifacts\windows\$env:RELEASE_VERSION\" -ErrorAction SilentlyContinue
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
