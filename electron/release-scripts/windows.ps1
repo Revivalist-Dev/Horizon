@@ -57,7 +57,8 @@ Set-Location electron
 # ! Removing 'app' and 'dist' directories to ensure a clean build
 Remove-Item -Recurse -Force app, dist -ErrorAction SilentlyContinue
 pnpm install
-pnpm build:win
+node ..\webpack production
+node build.mjs --os windows --format nsis msi --arch x64 arm64
 
 # Prepare release directory
 # * Create release directory if it doesn't exist
@@ -66,5 +67,6 @@ New-Item -ItemType Directory -Path $ReleasePath -Force | Out-Null
 # Copy artifacts
 # * Copy built executables to the release directory
 Copy-Item "$DistPath\*.exe" -Destination "$ReleasePath\" -ErrorAction SilentlyContinue
+Copy-Item "$DistPath\*.msi" -Destination "$ReleasePath\" -ErrorAction SilentlyContinue
 
-# TODO: Allow specifying the branch to build from
+# TODO: Allow specifying the branch to build from   

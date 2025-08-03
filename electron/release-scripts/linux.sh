@@ -36,7 +36,8 @@ rm -rf "$DIST_PATH"
 cd electron
 rm -rf app dist
 pnpm install
-pnpm build:linux
+node ../webpack production
+node build.mjs --os linux --format deb tar.gz AppImage --arch x64 arm64
 
 # & Prepare release directory
 mkdir -p "$RELEASE_PATH"
