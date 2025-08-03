@@ -7,6 +7,7 @@ import { arch as systemArch } from 'os';
 import { build } from 'electron-builder';
 import { execSync } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 
 // & Pretty colors for terminal output because we're fancy like that
 const COLORS = {
@@ -240,29 +241,23 @@ function runDockerBuild(opts, targetKey) {
 async function runNativeBuild(opts, targetKey) {
   console.log('Starting native build...');
 
-  const platformMap = {
-    linux: 'linux',
-    macos: 'mac',
-    windows: 'win'
-  };
+  // * Clean previous build artifacts
+  fs.rmSync(path.join(process.cwd(), 'dist'), { recursive: true, force: true });
 
-  // & Create target specifications for electron-builder
-  const targets = opts.format.map(format => ({
-    target: format,
-    arch: opts.arch
-  }));
+  const outDir = path.resolve(opts.output || 'dist');
+  fs.mkdirSync(outDir, { recursive: true });
 
+  // * Electron Builder configuration - matches working script format
   const config = {
-    [platformMap[targetKey]]: targets,
-    dir: false,
-    ...(opts.output && {
-      directories: {
-        output: opts.output
-      }
-    })
+    appId: 'com.fchat.horizon',
+    productName: 'F-Chat Horizon',
+    artifactName: '${productName}-${version}-${os}-${arch}.${ext}',
+    directories: { output: outDir },
+    files: ['dist/**/*', 'node_modules/**/*', 'package.json'],
+    [targetKey]: { target: opts.format }
   };
 
-  await build(config);
+  await build({ config });
   console.log('Build completed successfully!');
 }
 
