@@ -162,7 +162,6 @@ function runDockerBuild(opts, targetKey) {
   const formats = opts.format.join(' ');
   const archFlags = opts.arch.map(a => `--${a}`).join(' ');
 
-  // Both Linux and Windows builds run as user
   const isWindowsBuild = targetKey === 'windows';
 
   let dockerCmd;
@@ -171,29 +170,28 @@ function runDockerBuild(opts, targetKey) {
     // Windows build with Wine - run as root for Wine compatibility, fix ownership after
     dockerCmd = `docker run --rm \
     ${envVars} \
-    --env ELECTRON_CACHE="/tmp/.cache/electron" \
-    --env ELECTRON_BUILDER_CACHE="/tmp/.cache/electron-builder" \
+    --env ELECTRON_CACHE="/root/.cache/electron" \
+    --env ELECTRON_BUILDER_CACHE="/root/.cache/electron-builder" \
     --env WINEDEBUG=-all \
     --env WINEPREFIX=/root/.wine \
     -v ${process.cwd()}:/project \
     -v ${project}-node-modules:/project/node_modules \
-    -v ~/.cache/electron:/tmp/.cache/electron \
-    -v ~/.cache/electron-builder:/tmp/.cache/electron-builder \
+    -v ~/.cache/electron:/root/.cache/electron \
+    -v ~/.cache/electron-builder:/root/.cache/electron-builder \
     ${image} \
-    /bin/bash -c "cd /project && wineboot --init && sleep 2 && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags} && chown -R ${process.getuid()}:${process.getgid()} /project/dist"`;
+    /bin/bash -c "cd /project && wineboot --init && sleep 2 && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags} && chown -R ${process.getuid()}:${process.getgid()} /project"`;
   } else {
-    // Linux build - use user mapping as before
+    // Linux build - run as root to avoid permission issues, fix ownership after
     dockerCmd = `docker run --rm \
-    --user ${process.getuid()}:${process.getgid()} \
     ${envVars} \
-    --env ELECTRON_CACHE="/tmp/.cache/electron" \
-    --env ELECTRON_BUILDER_CACHE="/tmp/.cache/electron-builder" \
+    --env ELECTRON_CACHE="/root/.cache/electron" \
+    --env ELECTRON_BUILDER_CACHE="/root/.cache/electron-builder" \
     -v ${process.cwd()}:/project \
     -v ${project}-node-modules:/project/node_modules \
-    -v ~/.cache/electron:/tmp/.cache/electron \
-    -v ~/.cache/electron-builder:/tmp/.cache/electron-builder \
+    -v ~/.cache/electron:/root/.cache/electron \
+    -v ~/.cache/electron-builder:/root/.cache/electron-builder \
     ${image} \
-    /bin/bash -c "cd /project && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags}"`;
+    /bin/bash -c "cd /project && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags} && chown -R ${process.getuid()}:${process.getgid()} /project"`;
   }
 
   console.log(
