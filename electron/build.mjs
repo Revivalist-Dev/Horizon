@@ -29,8 +29,8 @@ const OS_CONFIGS = {
     formats: ['deb', 'rpm', 'tar.gz', 'AppImage'],
     arches: ['x64', 'arm64']
   },
-  windows: {
-    aliases: ['win', 'win32', 'win64'],
+  win: {
+    aliases: ['windows', 'win32', 'win64'],
     formats: ['exe', 'msi', 'nsis', 'portable'],
     arches: ['x64', 'ia32', 'arm64']
   }
