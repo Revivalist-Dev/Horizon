@@ -169,7 +169,7 @@ function runDockerBuild(opts, targetKey) {
 
   if (isWindowsBuild) {
     // Windows build with Wine - run as root for Wine compatibility, fix ownership after
-    dockerCmd = `docker run --rm -ti \
+    dockerCmd = `docker run --rm \
     ${envVars} \
     --env ELECTRON_CACHE="/tmp/.cache/electron" \
     --env ELECTRON_BUILDER_CACHE="/tmp/.cache/electron-builder" \
@@ -183,7 +183,7 @@ function runDockerBuild(opts, targetKey) {
     /bin/bash -c "cd /project && wineboot --init && sleep 2 && ./node_modules/.bin/electron-builder --${targetKey} ${formats} ${archFlags} && chown -R ${process.getuid()}:${process.getgid()} /project/dist"`;
   } else {
     // Linux build - use user mapping as before
-    dockerCmd = `docker run --rm -ti \
+    dockerCmd = `docker run --rm \
     --user ${process.getuid()}:${process.getgid()} \
     ${envVars} \
     --env ELECTRON_CACHE="/tmp/.cache/electron" \
