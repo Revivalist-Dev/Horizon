@@ -44,6 +44,5 @@ mkdir -p "$RELEASE_PATH"
 
 # & Copy artifacts for release
 cp "$DIST_PATH"/*.tar.gz "$RELEASE_PATH"/ 2>/dev/null || true
-cp "$DIST_PATH"/*.pacman "$RELEASE_PATH"/ 2>/dev/null || true
 cp "$DIST_PATH"/*.deb "$RELEASE_PATH"/ 2>/dev/null || true
 cp "$DIST_PATH"/*.AppImage "$RELEASE_PATH"/ 2>/dev/null || true
