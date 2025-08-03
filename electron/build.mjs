@@ -247,7 +247,11 @@ async function runNativeBuild(opts, targetKey) {
   };
 
   // & Create target specifications for electron-builder
-  const targets = opts.format.map(format => `${format}:${opts.arch.join(',')}`);
+  const targets = opts.format.map(format => ({
+    target: format,
+    arch: opts.arch
+  }));
+
   const config = {
     [platformMap[targetKey]]: targets,
     dir: false,
