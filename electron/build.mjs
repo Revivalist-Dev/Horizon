@@ -135,12 +135,24 @@ function isDockerAvailable() {
     return false;
   }
 }
+// $ Are we running in github actions?
+function isRunningInGitHubActions() {
+  return process.env.GITHUB_ACTIONS === 'true';
+}
 
 // $ Nice, nice, should we use it?
-// & Determines whether to use Docker based on user preference and availability
+// * Determines whether to use Docker based on user preference and availability
 function shouldUseDocker(opts, targetKey) {
   // * Never use Docker for macOS (doesn't work) or if explicitly disabled
   if (opts.docker === false || targetKey === 'macos') return false;
+
+  // * Check if we're running in GitHub Actions
+  if (isRunningInGitHubActions()) {
+    console.log(
+      `${COLORS.yellow}GitHub Actions detected - using native build instead of Docker${COLORS.reset}`
+    );
+    return false;
+  }
 
   if (opts.docker) {
     if (!isDockerAvailable()) {
@@ -180,7 +192,9 @@ function runDockerBuild(opts, targetKey) {
 
   // * Checks if we're on a Unix-like system (macos/Linux)
   const isUnix = typeof process.getuid === 'function';
-  const ownershipFix = isUnix ? ` && chown -R ${process.getuid()}:${process.getgid()} /project` : '';
+  const ownershipFix = isUnix
+    ? ` && chown -R ${process.getuid()}:${process.getgid()} /project`
+    : '';
 
   if (isWindowsBuild) {
     // ! Hooooooly unreadable code.
@@ -236,7 +250,7 @@ async function runNativeBuild(opts, targetKey) {
   const targets = opts.format.map(format => `${format}:${opts.arch.join(',')}`);
   const config = {
     [platformMap[targetKey]]: targets,
-    dir: false, 
+    dir: false,
     ...(opts.output && {
       directories: {
         output: opts.output
