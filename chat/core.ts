@@ -1,6 +1,6 @@
 import Vue, { WatchHandler } from 'vue';
 import { CacheManager } from '../learn/cache-manager';
-import { Channels, Characters } from '../fchat';
+import { Channels, Characters, SillyTavernBridge } from '../fchat';
 import BBCodeParser from './bbcode';
 import { Settings as SettingsImpl } from './common';
 import Conversations from './conversations';
@@ -131,6 +131,9 @@ export function init(
   data.register('characters', Characters(connection));
   data.register('channels', Channels(connection, core.characters));
   data.register('conversations', Conversations());
+
+  const sillyTavernBridge = new SillyTavernBridge(connection);
+  sillyTavernBridge.init();
 
   data.watch(
     () => state.hiddenUsers,
