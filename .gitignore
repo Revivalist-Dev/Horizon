@@ -10,7 +10,7 @@ node_modules/
 .idea/
 
 .DS_Store
-
+.SillyTavern
 
 
 test.ts
