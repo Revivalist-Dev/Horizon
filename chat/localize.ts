@@ -294,6 +294,8 @@ Current log location: {1}`,
     'Disable Windows high-contrast mode',
   'settings.system': 'System',
   'settings.systemLogLevel': 'System Log Level',
+  'settings.sillyTavernApiUrl': 'SillyTavern API URL',
+  'settings.sillyTavernFListPassword': 'SillyTavern F-List Password',
   'settings.risingShowUnreadOfflineCount':
     'Show unread note and offline message counts in the left sidebar',
   'settings.charactersToGeneral':

@@ -304,6 +304,8 @@ export namespace Settings {
 
     readonly risingCharacterTheme: string | undefined;
     readonly soundTheme: string;
+    sillyTavernApiUrl: string;
+    sillyTavernFListPassword: string; // Renamed to avoid conflict and clarify purpose
   }
 }
 

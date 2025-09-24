@@ -140,6 +140,9 @@ export class Settings implements ISettings {
   soundTheme = 'default';
   // Per-theme per-sound volume overrides. Structure: { [themeName]: { [soundName]: volumeNumber(0-1) } }
   soundThemeSoundVolumes: { [theme: string]: { [sound: string]: number } } = {};
+
+  sillyTavernApiUrl: string = 'http://localhost:8000';
+  sillyTavernFListPassword: string = '';
 }
 
 export class AdSettings implements Conversation.AdSettings {

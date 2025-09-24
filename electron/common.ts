@@ -55,6 +55,8 @@ export class GeneralSettings {
   horizonAutoLogin: boolean = false;
   use12HourTime: boolean = false;
   fuzzyDates: boolean = true;
+  sillyTavernApiUrl: string | undefined; // Made optional, user will set via UI
+  sillyTavernFListPassword: string = '';
 }
 
 log.debug('init.common.done');

@@ -6,7 +6,7 @@ import * as path from 'path';
 // import * as url from 'url';
 import l from '../chat/localize';
 import { defaultHost, GeneralSettings } from './common';
-// import BrowserWindow = electron.BrowserWindow;
+// import BrowserWindow = electron.BrowserWindow; // Revert this import
 import MenuItemConstructorOptions = electron.MenuItemConstructorOptions;
 import * as _ from 'lodash';
 import { AdCoordinatorHost } from '../chat/ads/ad-coordinator-host';
@@ -14,7 +14,7 @@ import { IpcMainEvent, session } from 'electron';
 import Axios from 'axios';
 import * as browserWindows from './browser_windows';
 import * as remoteMain from '@electron/remote/main';
-import { MenuItem } from 'electron/main';
+import { MenuItem } from 'electron/main'; // Revert KeyboardEvent import
 // Module to control application life.
 const app = electron.app;
 
@@ -75,6 +75,10 @@ export function updateSpellCheckerLanguages(langs: string[]): void {
 function setGeneralSettings(value: GeneralSettings): void {
   log.debug('settings.save', value);
   fs.writeFileSync(path.join(settingsDir, 'settings'), JSON.stringify(value));
+  log.debug('settings.sending_to_renderer', {
+    sillyTavernApiUrl: settings.sillyTavernApiUrl,
+    sillyTavernFListPassword: settings.sillyTavernFListPassword
+  });
   for (const w of electron.webContents.getAllWebContents())
     w.send('settings', settings);
 
@@ -304,18 +308,26 @@ function onReady(): void {
       {
         label: l('navigation.nextTab'),
         accelerator: 'Ctrl+Tab',
-        click: (_m: MenuItem, window: electron.BrowserWindow | undefined) => {
+        click: (
+          _m: MenuItem,
+          window: electron.BaseWindow | undefined,
+          _event: any
+        ) => {
           if (window) {
-            window.webContents.send('switch-tab');
+            (window as electron.BrowserWindow).webContents.send('switch-tab');
           }
         }
       },
       {
         label: l('navigation.previousTab'),
         accelerator: 'Ctrl+Shift+Tab',
-        click: (_m: MenuItem, window: electron.BrowserWindow | undefined) => {
+        click: (
+          _m: MenuItem,
+          window: electron.BaseWindow | undefined,
+          _event: any
+        ) => {
           if (window) {
-            window.webContents.send('previous-tab');
+            (window as electron.BrowserWindow).webContents.send('previous-tab');
           }
         }
       }

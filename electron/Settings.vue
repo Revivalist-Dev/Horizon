@@ -626,6 +626,36 @@
                 </h5>
 
                 <div class="mb-3">
+                  <label class="control-label" for="sillyTavernApiUrl">
+                    {{ l('settings.sillyTavernApiUrl') }}
+                    <div class="input-group">
+                      <input
+                        class="form-control"
+                        id="sillyTavernApiUrl"
+                        v-model="settings.sillyTavernApiUrl"
+                        type="url"
+                        placeholder="http://localhost:8000"
+                      />
+                    </div>
+                  </label>
+                </div>
+
+                <div class="mb-3">
+                  <label class="control-label" for="sillyTavernFListPassword">
+                    {{ l('settings.sillyTavernFListPassword') }}
+                    <div class="input-group">
+                      <input
+                        class="form-control"
+                        id="sillyTavernFListPassword"
+                        v-model="settings.sillyTavernFListPassword"
+                        type="password"
+                        placeholder="F-List Account Password"
+                      />
+                    </div>
+                  </label>
+                </div>
+
+                <div class="mb-3">
                   <label class="control-label" for="customCssEnabled">
                     <div class="form-check">
                       <input

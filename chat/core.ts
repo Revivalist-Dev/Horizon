@@ -1,6 +1,7 @@
 import Vue, { WatchHandler } from 'vue';
 import { CacheManager } from '../learn/cache-manager';
-import { Channels, Characters, SillyTavernBridge } from '../fchat';
+import { Channels, Characters } from '../fchat';
+import { SillyTavernBridge } from '../fchat/sillytavern_bridge';
 import BBCodeParser from './bbcode';
 import { Settings as SettingsImpl } from './common';
 import Conversations from './conversations';
@@ -101,11 +102,36 @@ const data = {
       }
     });
 
+    // Explicitly transfer SillyTavern settings from GeneralSettings to the chat-specific Settings
+    if (state._settings && (data.state as any).generalSettings) {
+      state._settings.sillyTavernApiUrl = (
+        data.state as any
+      ).generalSettings.sillyTavernApiUrl;
+      state._settings.sillyTavernFListPassword = (
+        data.state as any
+      ).generalSettings.sillyTavernFListPassword;
+    }
+
     const hiddenUsers = await core.settingsStore.get('hiddenUsers');
     state.hiddenUsers = hiddenUsers !== undefined ? hiddenUsers : [];
 
     const favoriteEIcons = await core.settingsStore.get('favoriteEIcons');
     state.favoriteEIcons = favoriteEIcons !== undefined ? favoriteEIcons : {};
+
+    // Add logging to inspect loaded settings
+    console.log('SillyTavernBridge: Raw settings received by renderer:', s);
+    console.log(
+      'SillyTavernBridge: Settings after merge in renderer:',
+      state._settings
+    );
+    console.log(
+      'SillyTavernBridge: sillyTavernApiUrl from renderer settings:',
+      state._settings?.sillyTavernApiUrl
+    );
+    console.log(
+      'SillyTavernBridge: sillyTavernFListPassword from renderer settings:',
+      state._settings?.sillyTavernFListPassword
+    );
   }
 };
 
@@ -132,8 +158,11 @@ export function init(
   data.register('channels', Channels(connection, core.characters));
   data.register('conversations', Conversations());
 
-  const sillyTavernBridge = new SillyTavernBridge(connection);
-  sillyTavernBridge.init();
+  // Initialize SillyTavern Bridge
+  const sillyTavernBridge = new SillyTavernBridge(connection, settings);
+  sillyTavernBridge.init().catch(error => {
+    console.error('Failed to initialize SillyTavern Bridge:', error);
+  });
 
   data.watch(
     () => state.hiddenUsers,
