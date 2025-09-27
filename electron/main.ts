@@ -14,7 +14,18 @@ import { IpcMainEvent, session } from 'electron';
 import Axios from 'axios';
 import * as browserWindows from './browser_windows';
 import * as remoteMain from '@electron/remote/main';
-import { MenuItem } from 'electron/main'; // Revert KeyboardEvent import
+
+const configuredSessions = new WeakSet<electron.Session>();
+
+const resolvePartition = (
+  targetSession: electron.Session,
+  fallback: string
+): string => {
+  const partition = (targetSession as unknown as { partition?: string })
+    .partition;
+  return partition || fallback || 'default';
+};
+
 // Module to control application life.
 const app = electron.app;
 
@@ -192,11 +203,61 @@ function onReady(): void {
   app.on('open-file', () => {
     browserWindows.createMainWindow(settings, shouldImportSettings, baseDir);
   });
+  const configurePermissionPolicy = (
+    targetSession: electron.Session | null,
+    fallbackLabel: string
+  ): void => {
+    if (!targetSession || configuredSessions.has(targetSession)) return;
+
+    configuredSessions.add(targetSession);
+
+    const partitionName = resolvePartition(targetSession, fallbackLabel);
+    const deny = (): boolean => false;
+
+    targetSession.setPermissionRequestHandler(
+      (_webContents, _permission, callback) => {
+        callback(false);
+      }
+    );
+
+    // Optional handlers if available
+    targetSession.setPermissionCheckHandler?.(
+      (_webContents, _permission, _details) => {
+        return deny();
+      }
+    );
+
+    targetSession.setDevicePermissionHandler?.(details => {
+      log.debug('permissions.blocked.device', {
+        partition: partitionName,
+        deviceType: details.deviceType
+      });
+      return deny();
+    });
+
+    targetSession.setDisplayMediaRequestHandler?.((_request, callback) => {
+      log.debug('permissions.blocked.displayCapture', {
+        partition: partitionName
+      });
+      callback({} as any);
+    });
+  };
+
   //Block automatic downloads in the image previewer.
   //It's in its own partitioned session, so we can't use session.defaultSession here
   const ses = session.fromPartition('persist:adblocked');
-  ses.on('will-download', (event, item, webContents) => {
+  ses.on('will-download', (event, _item, _webContents) => {
     event.preventDefault();
+  });
+  configurePermissionPolicy(session.defaultSession, 'default');
+  configurePermissionPolicy(
+    session.fromPartition('persist:fchat'),
+    'persist:fchat'
+  );
+  configurePermissionPolicy(ses, 'persist:adblocked');
+  app.on('web-contents-created', (_event, contents) => {
+    const partition = resolvePartition(contents.session, 'dynamic');
+    configurePermissionPolicy(contents.session, partition);
   });
   if (
     settings.version !== app.getVersion() &&
@@ -308,12 +369,8 @@ function onReady(): void {
       {
         label: l('navigation.nextTab'),
         accelerator: 'Ctrl+Tab',
-        click: (
-          _m: MenuItem,
-          window: electron.BaseWindow | undefined,
-          _event: any
-        ) => {
-          if (window) {
+        click: (_m, window) => {
+          if (window && 'webContents' in window) {
             (window as electron.BrowserWindow).webContents.send('switch-tab');
           }
         }
@@ -321,12 +378,8 @@ function onReady(): void {
       {
         label: l('navigation.previousTab'),
         accelerator: 'Ctrl+Shift+Tab',
-        click: (
-          _m: MenuItem,
-          window: electron.BaseWindow | undefined,
-          _event: any
-        ) => {
-          if (window) {
+        click: (_m, window) => {
+          if (window && 'webContents' in window) {
             (window as electron.BrowserWindow).webContents.send('previous-tab');
           }
         }
